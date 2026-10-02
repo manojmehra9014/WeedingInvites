@@ -81,6 +81,7 @@ Buy a domain (e.g. `weddingverse.in`) from any registrar → Render: **Settings 
 A sleeping free instance makes the **first guest wait up to a minute**. That hurts RSVPs.
 - **Built in:** on Render the server pings its own public URL (`RENDER_EXTERNAL_URL`, set by Render) at `/api/health` every 4 minutes, so it never goes idle long enough to sleep. The log shows `keep-awake: pinging … every 4 min`. Elsewhere set `KEEP_AWAKE_URL=https://<your-app>`; `KEEP_AWAKE=0` turns it off.
 - **Backup (recommended):** the self-ping can't wake an instance that already slept (e.g. after Render restarts it). Add a free monitor on **uptimerobot.com** or **cron-job.org**: type *HTTP(s)*, URL `https://<your-app>/api/health`, interval **5 minutes**. It also emails you when the site is down.
+- **Status page:** open `https://<your-app>/api/health` in a browser for uptime, restarts, downtime between runs, database and keep-awake status (`?format=json` for raw data, `?db=1` adds a database check to the JSON). Monitors get a small JSON reply that never touches the database.
 - One always-awake service fits inside Render's free monthly instance hours (750 h ≈ a full month). Only do this for **one** free service.
 - When revenue starts, Render's cheapest paid instance removes sleeping entirely and is the reliable choice for a live business. That's the first thing worth paying for.
 

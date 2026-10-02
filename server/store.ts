@@ -84,6 +84,9 @@ export interface Store {
   track(name: string, sid: string, detail: string): Promise<void>;
   /** Per event: distinct ids, total count, and the most common details. */
   eventCounts(): Promise<EventCount[]>;
+  /** Small server-owned records (e.g. the uptime log), one JSON value per key. */
+  getMeta<T>(key: string): Promise<T | null>;
+  setMeta(key: string, value: unknown): Promise<void>;
 }
 
 export interface EventCount {
@@ -141,6 +144,13 @@ function fileStore(dir: string): Store {
     writeFileSync(`${eventsFile}.tmp`, JSON.stringify(events));
     renameSync(`${eventsFile}.tmp`, eventsFile);
   };
+  const metaFile = path.join(dir, 'meta.json');
+  let meta: Record<string, unknown> = {};
+  try {
+    meta = JSON.parse(readFileSync(metaFile, 'utf8'));
+  } catch {
+    // First run.
+  }
   return {
     async get(slug) {
       return all[slug] ? withDefaults(structuredClone(all[slug])) : null;
@@ -182,6 +192,14 @@ function fileStore(dir: string): Store {
         top: topDetails(Object.entries(e.details).map(([detail, n]) => ({ detail, n }))),
       }));
     },
+    async getMeta<T>(key: string) {
+      return (structuredClone(meta[key]) as T) ?? null;
+    },
+    async setMeta(key, value) {
+      meta[key] = structuredClone(value);
+      writeFileSync(`${metaFile}.tmp`, JSON.stringify(meta));
+      renameSync(`${metaFile}.tmp`, metaFile);
+    },
   };
 }
 
@@ -194,6 +212,7 @@ async function postgresStore(url: string): Promise<Store> {
   const pool = new pg.Pool({ connectionString: url, ssl: plain ? false : { rejectUnauthorized: true } });
   await pool.query('CREATE TABLE IF NOT EXISTS weddings (slug text PRIMARY KEY, doc jsonb NOT NULL)');
   await pool.query("CREATE TABLE IF NOT EXISTS events (name text NOT NULL, sid text NOT NULL, detail text NOT NULL DEFAULT '', at timestamptz NOT NULL DEFAULT now())");
+  await pool.query('CREATE TABLE IF NOT EXISTS meta (key text PRIMARY KEY, value jsonb NOT NULL)');
   return {
     async get(slug) {
       const { rows } = await pool.query('SELECT doc FROM weddings WHERE slug = $1', [slug]);
@@ -250,6 +269,13 @@ async function postgresStore(url: string): Promise<Store> {
       const counts = await pool.query('SELECT name, count(DISTINCT sid)::int AS people, count(*)::int AS total FROM events GROUP BY name');
       const details = await pool.query("SELECT name, detail, count(*)::int AS n FROM events WHERE detail <> '' GROUP BY name, detail");
       return counts.rows.map((r) => ({ ...r, top: topDetails(details.rows.filter((d) => d.name === r.name).map(({ detail, n }) => ({ detail, n }))) }));
+    },
+    async getMeta<T>(key: string) {
+      const { rows } = await pool.query('SELECT value FROM meta WHERE key = $1', [key]);
+      return (rows[0]?.value as T) ?? null;
+    },
+    async setMeta(key, value) {
+      await pool.query('INSERT INTO meta (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value', [key, JSON.stringify(value)]);
     },
   };
 }

@@ -10,6 +10,8 @@ import {
   Perks, quote, RazorpayKeys, RazorpayPayment,
 } from './payments';
 import { openStore, WeddingDoc } from './store';
+import { keepAwake, startUptime, uptimeReport } from './uptime';
+import { healthPage } from './healthPage';
 import { isFunnelEvent } from '../src/utils/analytics';
 import { emailEnabled, sendInviteEmail, sendLoginCode } from './email';
 import { cleanData, cleanEmail, cleanGuestRsvp, cleanGuests, freeSlug, guestStatuses, isSlug, issueKey, keyMatches, newWedding, publicView, visibleRsvps } from './weddings';
@@ -21,6 +23,8 @@ const keys: RazorpayKeys | null =
     : null;
 
 const store = await openStore();
+await startUptime(store);
+const paymentsMode = !keys ? 'demo mode (no keys)' : keys.keyId.startsWith('rzp_test_') ? 'Razorpay TEST mode' : 'Razorpay LIVE';
 const app = express();
 app.set('trust proxy', 1); // Render/Railway/Nginx put the guest's IP in X-Forwarded-For
 
@@ -66,7 +70,36 @@ app.use('/api/weddings', (req, res, next) =>
 // Sign-in codes go by email. Without an email provider they are only printed in the server log, or
 // (AUTH_DEV_CODES=1, tests only) returned in the response.
 const devCodes = () => !emailEnabled() && process.env.AUTH_DEV_CODES === '1';
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+// Status for monitors (JSON) and people (a page, when a browser opens it). Only a browser visit or ?db=1
+// touches the database, so the frequent keep-awake/host health pings never wake a sleeping serverless DB.
+app.get('/api/health', async (req, res) => {
+  const page = req.query.format !== 'json' && req.accepts(['json', 'html']) === 'html';
+  let database: { ok: boolean; ms: number; error?: string } | undefined;
+  if (page || req.query.db === '1') {
+    const t = Date.now();
+    try {
+      await store.getMeta('uptime');
+      database = { ok: true, ms: Date.now() - t };
+    } catch (err) {
+      database = { ok: false, ms: Date.now() - t, error: (err as Error).message };
+    }
+  }
+  const body = {
+    status: database?.ok === false ? 'degraded' : 'ok',
+    app: SITE.name,
+    version: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? null,
+    node: process.version,
+    storage: process.env.DATABASE_URL ? 'Postgres' : 'JSON file',
+    payments: paymentsMode,
+    email: emailEnabled(),
+    memoryMb: Math.round(process.memoryUsage().rss / 1e6),
+    ...(database && { database }),
+    ...uptimeReport(),
+  };
+  res.set('Cache-Control', 'no-store');
+  if (page) return res.type('html').send(healthPage(body));
+  res.status(database?.ok === false ? 503 : 200).json(body);
+});
 app.get('/api/config', (_req, res) => res.json({ payments: !!keys, email: emailEnabled(), accounts: emailEnabled() || devCodes() }));
 
 /* ─────────────────────────────── helpers ──────────────────────────────── */
@@ -578,23 +611,10 @@ if (existsSync(dist)) {
 }
 
 app.listen(PORT, () => {
-  const mode = !keys ? 'demo mode (no keys)' : keys.keyId.startsWith('rzp_test_') ? 'Razorpay TEST mode' : 'Razorpay LIVE';
   const db = process.env.DATABASE_URL ? 'Postgres' : `JSON file in ${process.env.DATA_DIR || 'data/'}`;
   console.log(
-    `${SITE.name} API on http://localhost:${PORT} · payments: ${mode} · storage: ${db} · email: ${emailEnabled() ? 'on' : 'off'} · owner dashboard: ${(process.env.ADMIN_KEY ?? '').length >= 16 ? 'on' : 'off'}`,
+    `${SITE.name} API on http://localhost:${PORT} · payments: ${paymentsMode} · storage: ${db} · email: ${emailEnabled() ? 'on' : 'off'} · owner dashboard: ${(process.env.ADMIN_KEY ?? '').length >= 16 ? 'on' : 'off'}`,
   );
   keepAwake();
   if (keys && !SITE.business.email) console.warn('warning: business.email is empty in site.config.ts, so the Policies page (#/legal) has no contact email. Razorpay requires one.');
 });
-
-// Free hosts (Render) put the service to sleep after a few idle minutes, and the next guest then waits
-// up to a minute. Pinging our own public URL goes through the host's proxy, so it counts as traffic.
-// Render sets RENDER_EXTERNAL_URL; elsewhere set KEEP_AWAKE_URL. KEEP_AWAKE=0 turns it off.
-function keepAwake() {
-  const base = process.env.KEEP_AWAKE_URL || process.env.RENDER_EXTERNAL_URL;
-  if (!base || process.env.KEEP_AWAKE === '0') return;
-  const url = `${base.replace(/\/+$/, '')}/api/health`;
-  const ping = () => fetch(url, { signal: AbortSignal.timeout(10_000) }).catch((e) => console.warn(`keep-awake ping failed: ${e.message}`));
-  setInterval(ping, 4 * 60_000).unref();
-  console.log(`keep-awake: pinging ${url} every 4 min`);
-}
