@@ -82,7 +82,7 @@ export const DualOutputSection: React.FC<DualOutputSectionProps> = ({ weddingDat
           </div>
         </div>
 
-        <div ref={panel} className="grid items-center gap-12 lg:grid-cols-12">
+        <div ref={panel} className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
           <div className="dual-copy space-y-5 lg:col-span-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#8F6D31]">{copy.eyebrow}</p>
             <h3 className="font-serif text-3xl leading-tight text-[#191614] sm:text-4xl">{copy.title}</h3>
@@ -113,7 +113,7 @@ export const DualOutputSection: React.FC<DualOutputSectionProps> = ({ weddingDat
                     <span className="h-2.5 w-2.5 rounded-full bg-[#E5DFD4]" />
                     <span className="h-2.5 w-2.5 rounded-full bg-[#E5DFD4]" />
                   </div>
-                  <span className="truncate font-mono text-[10px] text-[#8E867C]">{window.location.host}/invite/{weddingData.customSlug}</span>
+                  <span className="min-w-0 truncate font-mono text-[10px] text-[#8E867C]">{window.location.host}/invite/{weddingData.customSlug}</span>
                   <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Live · scroll me</span>
                 </div>
                 <div className="h-[520px] overflow-y-auto overscroll-contain">

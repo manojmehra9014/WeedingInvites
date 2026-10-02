@@ -108,7 +108,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ weddingData, allTempla
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_1.2fr] lg:gap-10 lg:px-8">
+      <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-14 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-10 lg:px-8">
         {/* Copy */}
         <div className="text-center lg:text-left">
           <p className="hero-kicker mb-5 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-[11px] sm:tracking-[0.3em] text-[#8F6D31] lg:justify-start">
