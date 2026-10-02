@@ -7,7 +7,7 @@ services:
     # Tailwind/TypeScript are devDependencies but needed for the build.
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
-    healthCheckPath: /api/payments/config
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "22"

@@ -66,6 +66,7 @@ app.use('/api/weddings', (req, res, next) =>
 // Sign-in codes go by email. Without an email provider they are only printed in the server log, or
 // (AUTH_DEV_CODES=1, tests only) returned in the response.
 const devCodes = () => !emailEnabled() && process.env.AUTH_DEV_CODES === '1';
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.get('/api/config', (_req, res) => res.json({ payments: !!keys, email: emailEnabled(), accounts: emailEnabled() || devCodes() }));
 
 /* ─────────────────────────────── helpers ──────────────────────────────── */
@@ -582,5 +583,18 @@ app.listen(PORT, () => {
   console.log(
     `${SITE.name} API on http://localhost:${PORT} · payments: ${mode} · storage: ${db} · email: ${emailEnabled() ? 'on' : 'off'} · owner dashboard: ${(process.env.ADMIN_KEY ?? '').length >= 16 ? 'on' : 'off'}`,
   );
+  keepAwake();
   if (keys && !SITE.business.email) console.warn('warning: business.email is empty in site.config.ts, so the Policies page (#/legal) has no contact email. Razorpay requires one.');
 });
+
+// Free hosts (Render) put the service to sleep after a few idle minutes, and the next guest then waits
+// up to a minute. Pinging our own public URL goes through the host's proxy, so it counts as traffic.
+// Render sets RENDER_EXTERNAL_URL; elsewhere set KEEP_AWAKE_URL. KEEP_AWAKE=0 turns it off.
+function keepAwake() {
+  const base = process.env.KEEP_AWAKE_URL || process.env.RENDER_EXTERNAL_URL;
+  if (!base || process.env.KEEP_AWAKE === '0') return;
+  const url = `${base.replace(/\/+$/, '')}/api/health`;
+  const ping = () => fetch(url, { signal: AbortSignal.timeout(10_000) }).catch((e) => console.warn(`keep-awake ping failed: ${e.message}`));
+  setInterval(ping, 4 * 60_000).unref();
+  console.log(`keep-awake: pinging ${url} every 4 min`);
+}

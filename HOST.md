@@ -12,7 +12,7 @@ Pick one of the two recipes below. Both cost ₹0.
 | | **A. Render + Neon** (recommended to start) | **B. Oracle Cloud Always Free VM** |
 |---|---|---|
 | Setup time | ~15 minutes, all in the browser | ~1 hour, needs Linux basics |
-| Always on? | Sleeps after ~15 min idle; first visit then waits ~30–60 s (fixable, see step A5) | Yes |
+| Always on? | Kept awake by a built-in self-ping + free uptime monitor (step A5) | Yes |
 | Storage | Neon Postgres (free tier ~0.5 GB, roughly 300 weddings with photos) | 200 GB disk, JSON file store |
 | Card needed? | No | Yes (verification only) |
 | Good for | Launch, first few hundred couples | When you want zero cold starts and more room |
@@ -79,9 +79,10 @@ Buy a domain (e.g. `weddingverse.in`) from any registrar → Render: **Settings 
 
 ### A5. Stop the cold starts (free)
 A sleeping free instance makes the **first guest wait up to a minute**. That hurts RSVPs.
-- Create a free monitor on **uptimerobot.com**: type *HTTP(s)*, URL `https://<your-app>/api/payments/config`, interval **5 minutes**.
-- One always-awake service fits inside Render's free monthly instance hours. Only do this for **one** free service.
-- When revenue starts, Render's cheapest paid instance removes sleeping entirely. That's the first thing worth paying for.
+- **Built in:** on Render the server pings its own public URL (`RENDER_EXTERNAL_URL`, set by Render) at `/api/health` every 4 minutes, so it never goes idle long enough to sleep. The log shows `keep-awake: pinging … every 4 min`. Elsewhere set `KEEP_AWAKE_URL=https://<your-app>`; `KEEP_AWAKE=0` turns it off.
+- **Backup (recommended):** the self-ping can't wake an instance that already slept (e.g. after Render restarts it). Add a free monitor on **uptimerobot.com** or **cron-job.org**: type *HTTP(s)*, URL `https://<your-app>/api/health`, interval **5 minutes**. It also emails you when the site is down.
+- One always-awake service fits inside Render's free monthly instance hours (750 h ≈ a full month). Only do this for **one** free service.
+- When revenue starts, Render's cheapest paid instance removes sleeping entirely and is the reliable choice for a live business. That's the first thing worth paying for.
 
 ---
 
