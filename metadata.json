@@ -1,0 +1,6 @@
+{
+  "name": "WeddingVerse - Luxury Wedding Invitation & Video Maker",
+  "description": "Design cinematic wedding invitation websites and animated videos in minutes. Pick a luxury template, enter your wedding details once, and let our schema-driven engine build everything automatically.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

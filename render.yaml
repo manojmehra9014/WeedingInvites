@@ -1,0 +1,25 @@
+# Render Blueprint: Dashboard → New → Blueprint → pick this repo. See HOST.md.
+services:
+  - type: web
+    name: weddingverse
+    runtime: node
+    plan: free
+    # Tailwind/TypeScript are devDependencies but needed for the build.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/payments/config
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL # Neon connection string; required on Render (its disk is wiped on every restart)
+        sync: false
+      - key: RAZORPAY_KEY_ID # leave empty for demo mode
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: ADMIN_KEY # owner dashboard at /#/admin
+        generateValue: true
+      - key: RESEND_API_KEY # optional: email invitations
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

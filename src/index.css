@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-display: "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  
+  --color-gold-200: #F3E5C8;
+  --color-gold-300: #E5CE9F;
+  --color-gold-400: #D4B26F;
+  --color-gold-500: #B38B45;
+  --color-gold-600: #8F6D31;
+  --color-gold-700: #6B5120;
+  
+  --color-canvas: #FAF8F5;
+  --color-canvas-subtle: #F3EFEA;
+  --color-ink: #191614;
+  --color-ink-muted: #6B655E;
+  --color-ink-subtle: #9E9890;
+  --color-border-subtle: #E8E2D8;
+}
+
+/* Invitation tokens: values come from designVars() on the invitation root, so
+   `bg-inv-primary`, `text-inv-muted/70`, `border-inv-border` repaint per template. */
+@theme inline {
+  --color-inv-primary: var(--inv-primary);
+  --color-inv-secondary: var(--inv-secondary);
+  --color-inv-accent: var(--inv-accent);
+  --color-inv-bg: var(--inv-bg);
+  --color-inv-surface: var(--inv-surface);
+  --color-inv-text: var(--inv-text);
+  --color-inv-muted: var(--inv-muted);
+  --color-inv-border: var(--inv-border);
+  --color-inv-heading: var(--inv-heading);
+  --color-inv-cta: var(--inv-cta);
+  --color-inv-on-cta: var(--inv-on-cta);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-editorial {
+    font-family: var(--font-serif);
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF8F5;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8D0C5;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B38B45;
+}
+
+/* Pointer spotlight: position comes from useGsapReveal (--mx/--my); the glow sits between
+   the element's background and its content thanks to isolation + z-index:-1. */
+[data-spotlight] {
+  position: relative;
+  isolation: isolate;
+}
+[data-spotlight]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgb(179 139 69 / 0.16), transparent 45%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+[data-spotlight]:hover::before {
+  opacity: 1;
+}
+
+/* Animated gold hairline used on featured cards */
+@keyframes gold-sheen {
+  to { background-position: 200% center; }
+}
+.gold-sheen {
+  background: linear-gradient(110deg, #8f6d31, #e5ce9f 30%, #b38b45 50%, #e5ce9f 70%, #8f6d31) 0 center / 200% auto;
+  animation: gold-sheen 5s linear infinite;
+}
+/* Paints only a 1.5px frame of whatever background it has (pair with .gold-sheen). */
+.gold-border {
+  padding: 1.5px;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gold-sheen { animation: none; }
+}
